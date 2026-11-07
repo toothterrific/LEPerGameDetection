@@ -1,6 +1,6 @@
 ﻿# MELE Discord Rich Presence Mod
 
-Native (ASI) mod that gives **Mass Effect: Legendary Edition** a clean per-game Discord presence: while you play, your Discord status shows **"Mass Effect"**, **"Mass Effect 2"** or **"Mass Effect 3"**” using that game's **official exe icon** ” plus a session playtime timer. Nothing else is mined from the game.
+Native (ASI) mod that gives **Mass Effect: Legendary Edition** a clean per-game Discord presence: while you play, your Discord status shows **"Mass Effect"**, **"Mass Effect 2"** or **"Mass Effect 3"** — using that game's **official exe icon** — plus a session playtime timer. Nothing else is mined from the game.
 
 - **Single file**: one `LEPerGameDetection.asi` works in all three games (process-name detection at load).
 - **Minimal risk**: no memory pattern scanning, no engine hooks, no game data reads. It only talks to the Discord desktop app over its local IPC pipe (`\\?\pipe\discord-ipc-*`). No OAuth, no background services.
