@@ -33,7 +33,8 @@ Delete LEPerGameDetection.asi (and the .ini) from the ASI folder(s).
 
 Troubleshooting
 ---------------
-- Logs: %LOCALAPPDATA%\MELEDiscordRPC\
+- Logs: Binaries\Win64\Logs\LEPerGameDetection_*.log next to each game
+  (fallback if the game folder is read-only: %LOCALAPPDATA%\MELEDiscordRPC\)
 - Set debug=1 in the ini for an on-screen console while the game runs.
 - If the name or icon look wrong: the Discord application names must be exactly
   "Mass Effect" / "Mass Effect 2" / "Mass Effect 3" and the art assets must be

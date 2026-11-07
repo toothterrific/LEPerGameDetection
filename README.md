@@ -66,7 +66,7 @@ Copy `LEPerGameDetection.ini.example` to `LEPerGameDetection.ini`, next to the `
 
 ## Diagnosing
 
-`debug=1` opens a console panel; logs always land in `%LOCALAPPDATA%\MELEDiscordRPC\`.
+`debug=1` opens a console panel; logs land in `Binaries\Win64\Logs\` next to each game (falling back to `%LOCALAPPDATA%\MELEDiscordRPC\` only if the game folder is read-only).
 
 If nothing shows: confirm Discord desktop is running, confirm the per-game asset `le1/le2/le3` exists in the right app's Art Assets, check the log for connect errors.
 
