@@ -1,0 +1,61 @@
+cmake_minimum_required(VERSION 3.25)
+
+project(MELEDiscordRPC LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 17)
+
+if (NOT WIN32 OR NOT MSVC)
+    message(FATAL_ERROR "This project requires MSVC on Windows x64")
+endif()
+
+set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
+
+add_definitions(-DWIN32_LEAN_AND_MEAN -DNOMINMAX -DUNICODE -D_UNICODE)
+
+add_library(minhook STATIC
+    External/MinHook/src/buffer.c
+    External/MinHook/src/hook.c
+    External/MinHook/src/trampoline.c
+    External/MinHook/src/hde/hde64.c
+)
+target_include_directories(minhook PUBLIC External/MinHook/include External/MinHook/src)
+
+set_property(TARGET minhook PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+add_library(MELEDiscordRPC SHARED
+    src/Main.cpp
+    src/Common.cpp
+    src/Log.cpp
+    src/Patterns.cpp
+    src/GameContext.cpp
+    src/DiscordIpc.cpp
+    src/Presence.cpp
+    src/MapNames.cpp
+    src/Ini.cpp
+)
+target_include_directories(MELEDiscordRPC PRIVATE src External/MinHook/include)
+target_link_libraries(MELEDiscordRPC PRIVATE minhook shlwapi)
+target_link_options(MELEDiscordRPC PRIVATE "/DEBUG")
+set_property(TARGET MELEDiscordRPC PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set_property(TARGET MELEDiscordRPC PROPERTY SUFFIX ".asi")
+set_property(TARGET MELEDiscordRPC PROPERTY RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/out")
+set_property(TARGET MELEDiscordRPC PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/out")
+set_property(TARGET MELEDiscordRPC PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/out")
+
+target_compile_options(MELEDiscordRPC PRIVATE /utf-8 /W3 /EHsc)
+
+add_executable(rpc_test
+    toolkit/rpc_test/rpc_test.cpp
+    src/Common.cpp
+    src/Log.cpp
+    src/DiscordIpc.cpp
+)
+target_include_directories(rpc_test PRIVATE src)
+target_link_libraries(rpc_test PRIVATE shlwapi user32)
+set_property(TARGET rpc_test PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set_property(TARGET rpc_test PROPERTY RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/out")
+set_property(TARGET rpc_test PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/out")
+set_property(TARGET rpc_test PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/out")
+target_compile_options(rpc_test PRIVATE /utf-8 /W3 /EHsc)
