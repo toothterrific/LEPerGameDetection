@@ -24,6 +24,7 @@ add_library(MELEDiscordRPC SHARED
 target_include_directories(MELEDiscordRPC PRIVATE src)
 target_link_libraries(MELEDiscordRPC PRIVATE shlwapi)
 set_property(TARGET MELEDiscordRPC PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set_property(TARGET MELEDiscordRPC PROPERTY OUTPUT_NAME "MELEPerGamePresence")
 set_property(TARGET MELEDiscordRPC PROPERTY SUFFIX ".asi")
 set_property(TARGET MELEDiscordRPC PROPERTY RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/out")
 set_property(TARGET MELEDiscordRPC PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/out")

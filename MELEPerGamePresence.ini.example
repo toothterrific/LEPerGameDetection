@@ -1,4 +1,4 @@
-MELEDiscordRPC.ini (copy next to the .asi file) - all keys optional,
+MELEPerGamePresence.ini (copy next to the .asi file) - all keys optional,
 compiled defaults already contain the project owner's application IDs.
 
 [presence]
