@@ -48,6 +48,7 @@ int main(int argc, char** argv)
     long long start = mele::NowEpochMs();
     std::string json = mele::BuildActivityJson(
         largeKey, !smallKey.empty(), smallKey.c_str(), details, state, start);
+    printf("JSON: %s\n", json.c_str());
     if (!ipc->SendActivityFrame(json)) {
         printf("Send failed\n");
         mele::LogShutdown();

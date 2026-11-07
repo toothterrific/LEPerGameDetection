@@ -73,8 +73,33 @@ namespace mele {
             return false;
         }
 
+        long long deadline = ::GetTickCount64() + 5000;
+        bool bGotReady = false;
+        while (::GetTickCount64() < deadline) {
+            int opcode = 0;
+            std::string payload;
+            if (ReadFullFrame(&opcode, &payload, nullptr)) {
+                if (opcode == 1 && payload.find("\"evt\":\"READY\"") != std::string::npos) {
+                    bGotReady = true;
+                    break;
+                }
+                if (opcode == 1 && payload.find("\"error\"") != std::string::npos) {
+                    LOG_ERROR("IPC auth error while waiting for READY: %s",
+                        payload.size() > 400 ? payload.substr(0, 400).c_str() : payload.c_str());
+                    break;
+                }
+            } else {
+                ::Sleep(50);
+            }
+        }
+        if (!bGotReady) {
+            LOG_ERROR("No READY frame from Discord within 5s; giving up");
+            Disconnect();
+            return false;
+        }
+
         m_Connected = true;
-        LOG_INFO("Handshake sent (client_id=%s)", m_ClientId.c_str());
+        LOG_INFO("Handshake sent (client_id=%s); READY received", m_ClientId.c_str());
         DrainIncoming();
         return true;
     }
@@ -273,17 +298,16 @@ namespace mele {
         bool disconnected = false;
         std::string payload;
         int guard = 0;
-        while (guard < 32) {
+        while (guard < 64) {
             guard += 1;
+            payload.clear();
             if (!ReadFullFrame(&opcode, &payload, &disconnected)) {
                 break;
             }
             if (opcode == 1 && !payload.empty()) {
-                if (payload.find("\"error\"") != std::string::npos) {
-                    LOG_ERROR("IPC error frame: %s", payload.substr(0, 480).c_str());
-                } else if (payload.find("\"evt\":\"ACTIVITY" ) != std::string::npos) {
-                    LOG_DEBUG("IPC event: %s", payload.substr(0, 240).c_str());
-                }
+                LOG_INFO("IPC frame: %s", payload.size() > 600 ? payload.substr(0, 600).c_str() : payload.c_str());
+            } else if (opcode != 1) {
+                LOG_INFO("IPC opcode %d (len %d)", opcode, (int)payload.size());
             }
         }
     }
@@ -292,7 +316,6 @@ namespace mele {
         const std::string& Details, const std::string& State, long long StartEpochMs)
     {
         std::string json = "{\"type\":0";
-        json += ",\"name\":\"Mass Effect Legendary Edition\"";
 
         json += ",\"details\":\"";
         for (char c : Details) {
@@ -321,9 +344,12 @@ namespace mele {
         }
 
         if (StartEpochMs > 0) {
-            json += ",\"timestamps\":{\"start\":";
-            json += std::to_string(StartEpochMs);
-            json += "}";
+            long long startSeconds = StartEpochMs / 1000;
+            if (startSeconds > 0) {
+                json += ",\"timestamps\":{\"start\":";
+                json += std::to_string(startSeconds);
+                json += "}";
+            }
         }
 
         json += ",\"assets\":{\"large_image\":\"";
@@ -336,7 +362,7 @@ namespace mele {
         }
         json += "}";
 
-        json += ",\"instance\":false}";
+        json += "}";
         return json;
     }
 

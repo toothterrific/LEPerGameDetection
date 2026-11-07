@@ -59,3 +59,17 @@ set_property(TARGET rpc_test PROPERTY RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_D
 set_property(TARGET rpc_test PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/out")
 set_property(TARGET rpc_test PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/out")
 target_compile_options(rpc_test PRIVATE /utf-8 /W3 /EHsc)
+
+add_executable(rpc_probe
+    toolkit/rpc_probe/rpc_probe.cpp
+    src/Common.cpp
+    src/Log.cpp
+    src/DiscordIpc.cpp
+)
+target_include_directories(rpc_probe PRIVATE src)
+target_link_libraries(rpc_probe PRIVATE shlwapi user32)
+set_property(TARGET rpc_probe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set_property(TARGET rpc_probe PROPERTY RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/out")
+set_property(TARGET rpc_probe PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/out")
+set_property(TARGET rpc_probe PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/out")
+target_compile_options(rpc_probe PRIVATE /utf-8 /W3 /EHsc)

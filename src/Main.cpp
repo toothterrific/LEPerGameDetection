@@ -22,7 +22,7 @@ namespace mele {
     static std::atomic<bool> g_WorkerAlive{ false };
     static std::thread g_WorkerThread;
     static Config g_Config;
-    static const char* k_DefaultClientId = "0";
+    static const char* k_DefaultClientId = "1568689342417739806";
 
     static void OnGameTick()
     {
