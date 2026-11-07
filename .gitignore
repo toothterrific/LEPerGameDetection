@@ -21,3 +21,5 @@ out/
 # OS junk
 Thumbs.db
 desktop.ini
+dist/v*.zip
+build/out/rpc_test*
