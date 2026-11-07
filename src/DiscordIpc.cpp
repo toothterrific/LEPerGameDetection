@@ -291,6 +291,27 @@ namespace mele {
         }
     }
 
+    bool DiscordIpc::ProbeHealth()
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_IoMutex);
+        if (m_Pipe == INVALID_HANDLE_VALUE) {
+            if (m_Connected) {
+                m_Connected = false;
+            }
+            return false;
+        }
+        DWORD available = 0;
+        if (!::PeekNamedPipe(m_Pipe, nullptr, 0, nullptr, &available, nullptr)) {
+            DWORD err = ::GetLastError();
+            if (err == 232 || err == 109 || err == 233) {
+                LOG_INFO("Pipe health probe failed (GLE=%lu); connection lost", err);
+                Disconnect();
+                return false;
+            }
+        }
+        return true;
+    }
+
     void DiscordIpc::DrainIncoming()
     {
         std::lock_guard<std::recursive_mutex> lock(m_IoMutex);

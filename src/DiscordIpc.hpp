@@ -20,6 +20,7 @@ namespace mele {
         bool SendClearActivity();
         bool SendPing();
         void DrainIncoming();
+        bool ProbeHealth();
 
         int RecentWriteError() const { return m_LastWriteError; }
 

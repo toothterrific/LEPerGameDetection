@@ -39,7 +39,8 @@ namespace mele {
         }
 
         if (packageName.empty()) {
-            field.Details = "Starting up";
+            LOG_DEBUG("World package empty (loading stream); holding last presence state");
+            return;
         } else if (packageName == "entrymenu") {
             field.Details = "In main menu";
             field.bSmallKey = true;
@@ -125,8 +126,13 @@ namespace mele {
         auto* ipc = &DiscordIpc::Instance();
         PresenceField lastSent;
         bool bHaveAny = false;
-        bool bSentIdleOnce = false;
-        long long lastIoAttempt = 0;
+        long long lastPushMs = 0;
+        long long lastConnectAttemptMs = 0;
+        long long lastIdleCheckMs = 0;
+
+        constexpr long long k_MinPushIntervalMs = 6000;
+        constexpr long long k_MinReconnectIntervalMs = 5000;
+        constexpr long long k_IdleReconnectMs = 30000;
 
         while (g_WorkerAlive.load()) {
             ::Sleep(300);
@@ -137,38 +143,49 @@ namespace mele {
             PresenceField cur;
             PresenceState::Instance().GetLatest(&cur);
             long long now = ::GetTickCount64();
-
             const bool dirty = cur.Differs(lastSent);
 
             if (dirty) {
-                if (ipc->IsConnected()) {
-                    if (SendPresenceOrClear(cur, lastSent, bHaveAny)) {
+                const bool canPush = (now - lastPushMs) >= k_MinPushIntervalMs;
+                if (canPush) {
+                    lastPushMs = now;
+                    if (!ipc->IsConnected()) {
+                        if ((now - lastConnectAttemptMs) < k_MinReconnectIntervalMs) {
+                            continue;
+                        }
+                        lastConnectAttemptMs = now;
+                    }
+                    if (ipc->TryConnect() && SendPresenceOrClear(cur, lastSent, bHaveAny)) {
                         lastSent = cur;
-                        bSentIdleOnce = bHaveAny;
-                        lastIoAttempt = now;
                         ipc->DrainIncoming();
                         continue;
                     }
+                    if (!ipc->IsConnected()) {
+                        lastPushMs = 0;
+                    }
                 }
-                if (ipc->TryConnect() && SendPresenceOrClear(cur, lastSent, bHaveAny)) {
-                    lastSent = cur;
-                    bSentIdleOnce = bHaveAny;
-                    lastIoAttempt = now;
-                    ipc->DrainIncoming();
-                    continue;
+            } else if (!ipc->IsConnected() && (now - lastIdleCheckMs) >= k_IdleReconnectMs) {
+                lastIdleCheckMs = now;
+                if (bHaveAny) {
+                    if ((now - lastConnectAttemptMs) >= k_MinReconnectIntervalMs) {
+                        lastConnectAttemptMs = now;
+                        if (ipc->TryConnect()) {
+                            ipc->DrainIncoming();
+                            SendPresenceOrClear(cur, lastSent, bHaveAny);
+                        }
+                    }
                 }
-                lastIoAttempt = now;
-            } else if (bHaveAny && (now - lastIoAttempt) >= 15000) {
-                if (ipc->IsConnected() && ipc->SendPing()) {
-                    ipc->DrainIncoming();
-                } else if (ipc->TryConnect()) {
-                    ipc->DrainIncoming();
+            } else if (ipc->IsConnected() && (now - lastIdleCheckMs) >= k_IdleReconnectMs) {
+                lastIdleCheckMs = now;
+                if (!ipc->ProbeHealth() && bHaveAny) {
+                    if ((now - lastConnectAttemptMs) >= k_MinReconnectIntervalMs) {
+                        lastConnectAttemptMs = now;
+                        if (ipc->TryConnect()) {
+                            ipc->DrainIncoming();
+                            SendPresenceOrClear(cur, lastSent, bHaveAny);
+                        }
+                    }
                 }
-                lastIoAttempt = now;
-            } else if (!bHaveAny && !bSentIdleOnce && (now - lastIoAttempt) >= 5000) {
-                bSentIdleOnce = true;
-            } else if (!ipc->IsConnected() && (now - lastIoAttempt) >= 15000) {
-                lastIoAttempt = now;
             }
         }
         return 0;
