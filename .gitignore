@@ -1,0 +1,23 @@
+﻿# Build system
+build/
+out/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.pdb
+
+# Compiled artifacts
+*.asi
+*.dll
+*.exe
+*.lib
+*.exp
+*.rc
+
+# Keep tracked asset binaries (art) — none above match the assets module
+
+# OS junk
+Thumbs.db
+desktop.ini
