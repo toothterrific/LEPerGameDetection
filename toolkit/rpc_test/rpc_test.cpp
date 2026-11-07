@@ -1,7 +1,6 @@
 #include "../../src/Common.hpp"
 #include "../../src/DiscordIpc.hpp"
 #include "../../src/Log.hpp"
-#include "../../src/Presence.hpp"
 
 #include <cstdio>
 #include <string>

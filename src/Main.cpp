@@ -1,275 +1,136 @@
 #include "Common.hpp"
 #include "Log.hpp"
-#include "Patterns.hpp"
-#include "GameContext.hpp"
-#include "DiscordIpc.hpp"
-#include "Presence.hpp"
-#include "MapNames.hpp"
-#include "AreasRuntime.hpp"
 #include "Ini.hpp"
+#include "DiscordIpc.hpp"
 
-#include <MinHook.h>
-#include <string>
 #include <atomic>
+#include <string>
 #include <thread>
 
 namespace mele {
 
-    typedef void (*tProcessEvent)(void* Context, void* Function, void* Parms, void* Result);
-    static tProcessEvent g_OrigProcessEvent = nullptr;
-    static void* g_HookTarget = nullptr;
-    static std::atomic<bool> g_HookAlive{ false };
-    static std::atomic<long long> g_LastPresenceReadTick{ 0 };
+    static const char* k_DefaultClientIdLE1 = "1568689342417739806";
+    static const char* k_DefaultClientIdLE2 = "1568722277154160791";
+    static const char* k_DefaultClientIdLE3 = "1568722427175895060";
+
+    static const char* k_LargeKeyLE1 = "le1";
+    static const char* k_LargeKeyLE2 = "le2";
+    static const char* k_LargeKeyLE3 = "le3";
+
+    static Config g_Config;
+    static GameId g_Game = GameId::Unknown;
+    static long long g_SessionStartMs = 0;
+
     static std::atomic<bool> g_WorkerAlive{ false };
     static std::thread g_WorkerThread;
-    static Config g_Config;
-    static const char* k_DefaultClientId = "1568689342417739806";
 
-    static std::string g_LastPackageName;
-    static bool g_HaveLastPackage = false;
-
-    static void OnGameTick()
-    {
-        auto* ctx = &GameContext::Instance();
-
-        std::string packageName = ctx->GetWorldPackageName();
-
-        if (packageName.empty()) {
-            LOG_DEBUG("World package empty (loading stream); holding last presence state");
-            return;
-        }
-
-        const bool bPkgChanged = !g_HaveLastPackage || packageName != g_LastPackageName;
-
-        PresenceField field;
-        field.LargeKey = ctx->LargeImageKey();
-        switch (ctx->GetGame()) {
-        case GameId::LE1: field.State = "Mass Effect"; break;
-        case GameId::LE2: field.State = "Mass Effect 2"; break;
-        case GameId::LE3: field.State = "Mass Effect 3"; break;
-        default: field.State = "Mass Effect"; break;
-        }
-
-        std::string dynamicName = AreasRuntime::Instance().ResolveArea(
-            ctx->GetGame(), packageName, bPkgChanged);
-
-        if (packageName == "entrymenu") {
-            field.Details = "In main menu";
-            field.bSmallKey = true;
-            strcpy_s(field.SmallKey, sizeof(field.SmallKey), "menu");
-        } else if (!dynamicName.empty()) {
-            field.Details = dynamicName;
-        } else {
-            const char* mapped = LookupMapName(static_cast<int>(ctx->GetGame()), packageName);
-            if (mapped) {
-                field.Details = mapped;
-            } else {
-                field.Details = g_Config.bShowRawPackages ? ("Exploring " + packageName) : "Exploring";
-                LOG_DEBUG("Unmapped package '%s' (game %s)", packageName.c_str(), ctx->GameTag());
-            }
-        }
-
-        if (bPkgChanged) {
-            g_LastPackageName = packageName;
-            g_HaveLastPackage = true;
-        }
-
-        PresenceState::Instance().StartSessionOnce();
-        PresenceState::Instance().Publish(field);
-    }
-
-    static void OnGameTickGuarded()
-    {
-        __try {
-            OnGameTick();
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER) {
-            LOG_ERROR("Presence read faulted (guarded)");
-        }
-    }
-
-    static void ProcessEventHook(void* Context, void* Function, void* Parms, void* Result)
-    {
-        if (g_HookAlive.load(std::memory_order_acquire)) {
-            long long tick = ::GetTickCount64();
-            long long last = g_LastPresenceReadTick.load(std::memory_order_acquire);
-            if (tick - last >= 500) {
-                if (g_LastPresenceReadTick.compare_exchange_strong(last, tick)) {
-                    GameContext* ctx = &GameContext::Instance();
-                    if (ctx->IsExitRequested()) {
-                        PresenceState::Instance().Publish(PresenceField{});
-                        g_HookAlive.store(false, std::memory_order_release);
-                    } else {
-                        OnGameTickGuarded();
-                    }
-                }
-            }
-        }
-        if (g_OrigProcessEvent) {
-            g_OrigProcessEvent(Context, Function, Parms, Result);
-        }
-    }
-
-    static bool SendPresenceOrClear(const PresenceField& cur, PresenceField& lastSent, bool& bHaveAny)
+    static void PushStaticPresence()
     {
         auto* ipc = &DiscordIpc::Instance();
-        if (cur.Details.empty()) {
-            if (!bHaveAny) {
-                return false;
-            }
-            if (ipc->SendClearActivity()) {
-                bHaveAny = false;
-                LOG_INFO("Presence cleared (game shutting down)");
-                return true;
-            }
-            return false;
+        const char* largeKey = nullptr;
+        switch (g_Game) {
+        case GameId::LE1: largeKey = k_LargeKeyLE1; break;
+        case GameId::LE2: largeKey = k_LargeKeyLE2; break;
+        case GameId::LE3: largeKey = k_LargeKeyLE3; break;
+        default: return;
         }
 
         std::string json = BuildActivityJson(
-            cur.LargeKey, cur.bSmallKey,
-            cur.bSmallKey ? cur.SmallKey : nullptr,
-            cur.Details, cur.State,
-            PresenceState::Instance().SessionStart());
+            largeKey, false, nullptr,
+            "", "",
+            g_Config.bShowTimer ? g_SessionStartMs : 0);
+
         if (ipc->SendActivityFrame(json)) {
-            bHaveAny = true;
-            LOG_INFO("Presence sent: details='%s' state='%s' large=%s small=%s",
-                cur.Details.c_str(), cur.State.c_str(), cur.LargeKey.c_str(),
-                cur.bSmallKey ? cur.SmallKey : "-");
-            return true;
+            LOG_INFO("Presence pushed (game=%d large=%s timer=%d)",
+                static_cast<int>(g_Game), largeKey, g_Config.bShowTimer ? 1 : 0);
         }
-        return false;
     }
 
     static DWORD WINAPI WorkerThread(LPVOID)
     {
         auto* ipc = &DiscordIpc::Instance();
-        PresenceField lastSent;
-        bool bHaveAny = false;
-        long long lastPushMs = 0;
-        long long lastConnectAttemptMs = 0;
-        long long lastIdleCheckMs = 0;
 
-        constexpr long long k_MinPushIntervalMs = 6000;
-        constexpr long long k_MinReconnectIntervalMs = 5000;
-        constexpr long long k_IdleReconnectMs = 30000;
+        constexpr long long k_MinReconnectMs = 5000;
+        constexpr long long k_HealthProbeMs = 30000;
+
+        long long lastConnectAttemptMs = 0;
+        long long lastHealthProbeMs = 0;
+
+        if (ipc->TryConnect()) {
+            lastConnectAttemptMs = NowTickMs();
+            PushStaticPresence();
+        }
 
         while (g_WorkerAlive.load()) {
-            ::Sleep(300);
-            if (!g_Config.bEnabled) {
+            ::Sleep(400);
+            long long now = NowTickMs();
+
+            if (!ipc->IsConnected()) {
+                if ((now - lastConnectAttemptMs) >= k_MinReconnectMs) {
+                    lastConnectAttemptMs = now;
+                    if (ipc->TryConnect()) {
+                        PushStaticPresence();
+                    }
+                }
                 continue;
             }
 
-            PresenceField cur;
-            PresenceState::Instance().GetLatest(&cur);
-            long long now = ::GetTickCount64();
-            const bool dirty = cur.Differs(lastSent);
-
-            if (dirty) {
-                const bool canPush = (now - lastPushMs) >= k_MinPushIntervalMs;
-                if (canPush) {
-                    lastPushMs = now;
-                    if (!ipc->IsConnected()) {
-                        if ((now - lastConnectAttemptMs) < k_MinReconnectIntervalMs) {
-                            continue;
-                        }
-                        lastConnectAttemptMs = now;
-                    }
-                    if (ipc->TryConnect() && SendPresenceOrClear(cur, lastSent, bHaveAny)) {
-                        lastSent = cur;
-                        ipc->DrainIncoming();
-                        continue;
-                    }
-                    if (!ipc->IsConnected()) {
-                        lastPushMs = 0;
-                    }
-                }
-            } else if (!ipc->IsConnected() && (now - lastIdleCheckMs) >= k_IdleReconnectMs) {
-                lastIdleCheckMs = now;
-                if (bHaveAny) {
-                    if ((now - lastConnectAttemptMs) >= k_MinReconnectIntervalMs) {
-                        lastConnectAttemptMs = now;
-                        if (ipc->TryConnect()) {
-                            ipc->DrainIncoming();
-                            SendPresenceOrClear(cur, lastSent, bHaveAny);
-                        }
-                    }
-                }
-            } else if (ipc->IsConnected() && (now - lastIdleCheckMs) >= k_IdleReconnectMs) {
-                lastIdleCheckMs = now;
-                if (!ipc->ProbeHealth() && bHaveAny) {
-                    if ((now - lastConnectAttemptMs) >= k_MinReconnectIntervalMs) {
-                        lastConnectAttemptMs = now;
-                        if (ipc->TryConnect()) {
-                            ipc->DrainIncoming();
-                            SendPresenceOrClear(cur, lastSent, bHaveAny);
-                        }
-                    }
+            if ((now - lastHealthProbeMs) >= k_HealthProbeMs) {
+                lastHealthProbeMs = now;
+                if (!ipc->ProbeHealth()) {
+                    lastConnectAttemptMs = 0;
                 }
             }
+
+            ipc->DrainIncoming();
         }
         return 0;
     }
 
-    static void UninstallHookIfAny()
-    {
-        if (g_OrigProcessEvent) {
-            if (g_HookTarget) {
-                ::MH_DisableHook(g_HookTarget);
-                ::MH_RemoveHook(g_HookTarget);
-            }
-            ::MH_Uninitialize();
-            g_OrigProcessEvent = nullptr;
-            g_HookTarget = nullptr;
-        }
-    }
-
     static DWORD WINAPI ModThread(LPVOID Module)
     {
-        Config cfg = LoadConfig(static_cast<HMODULE>(Module), k_DefaultClientId);
+        HMODULE thisModule = static_cast<HMODULE>(Module);
+        Config cfg = LoadConfig(thisModule, k_DefaultClientIdLE1, k_DefaultClientIdLE2, k_DefaultClientIdLE3);
         g_Config = cfg;
         if (!cfg.bEnabled) {
             return 0;
         }
+
         LogInit(cfg.bDebugConsole);
-        LOG_INFO("=== MELE Discord RPC starting (built %s %s) ===", __DATE__, __TIME__);
-        LOG_INFO("Config: client_id=%s enabled=%d debug=%d raw_packages=%d game_number=%d",
-            cfg.ClientId.c_str(), cfg.bEnabled ? 1 : 0, cfg.bDebugConsole ? 1 : 0,
-            cfg.bShowRawPackages ? 1 : 0, cfg.bStateNumber ? 1 : 0);
+        LOG_INFO("=== MELE Discord RPC v2 starting (built %s %s) ===", __DATE__, __TIME__);
 
-        if (!GameContext::Instance().Initialize()) {
-            LOG_ERROR("Initialization failed; mod stays idle");
+        g_Game = DetectGame();
+        if (g_Game == GameId::Unknown) {
+            LOG_ERROR("Unsupported process (expected MassEffect1/2/3.exe); staying idle");
+            LogShutdown();
             return 0;
         }
 
-        AreasRuntime::Instance().Initialize(GameContext::Instance().GetGame());
+        const char* clientId = "";
+        const char* gameName = "";
+        switch (g_Game) {
+        case GameId::LE1: clientId = cfg.ClientIdLE1.c_str(); gameName = "Mass Effect 1"; break;
+        case GameId::LE2: clientId = cfg.ClientIdLE2.c_str(); gameName = "Mass Effect 2"; break;
+        case GameId::LE3: clientId = cfg.ClientIdLE3.c_str(); gameName = "Mass Effect 3"; break;
+        default: break;
+        }
 
-        DiscordIpc::Instance().Configure(cfg.ClientId);
+        LOG_INFO("Detected game: %s", gameName);
+        LOG_INFO("Config: client_id=%s enabled=%d debug=%d timer=%d",
+            clientId, cfg.bEnabled ? 1 : 0, cfg.bDebugConsole ? 1 : 0, cfg.bShowTimer ? 1 : 0);
 
-        if (::MH_Initialize() != MH_OK) {
-            LOG_ERROR("MH_Initialize failed");
+        if (!clientId || clientId[0] == '\0') {
+            LOG_ERROR("No client id configured for this game; staying idle");
+            LogShutdown();
             return 0;
         }
 
-        g_HookTarget = GameContext::Instance().ProcessEventAddress();
-        if (!g_HookTarget) {
-            LOG_ERROR("ProcessEvent address missing");
-            return 0;
-        }
-        if (::MH_CreateHook(g_HookTarget, &ProcessEventHook,
-            reinterpret_cast<LPVOID*>(&g_OrigProcessEvent)) != MH_OK) {
-            LOG_ERROR("MH_CreateHook(ProcessEvent) failed");
-            return 0;
-        }
-        if (::MH_EnableHook(g_HookTarget) != MH_OK) {
-            LOG_ERROR("MH_EnableHook(ProcessEvent) failed");
-            return 0;
-        }
-        LOG_INFO("ProcessEvent hook installed at %p", g_HookTarget);
+        DiscordIpc::Instance().Configure(clientId);
+        g_SessionStartMs = NowEpochMs();
 
-        g_HookAlive.store(true, std::memory_order_release);
         g_WorkerAlive.store(true);
         g_WorkerThread = std::thread(WorkerThread, nullptr);
-        LOG_INFO("Mod fully started");
+        LOG_INFO("Mod started");
         return 0;
     }
 

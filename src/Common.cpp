@@ -10,6 +10,11 @@ namespace mele {
         return static_cast<long long>((ft64 - 116444736000000000ull) / 10000ull);
     }
 
+    long long NowTickMs()
+    {
+        return static_cast<long long>(::GetTickCount64());
+    }
+
     std::string ToLowerAscii(std::string_view In)
     {
         std::string out;

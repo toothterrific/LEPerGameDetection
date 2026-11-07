@@ -14,31 +14,15 @@ set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
 
 add_definitions(-DWIN32_LEAN_AND_MEAN -DNOMINMAX -DUNICODE -D_UNICODE)
 
-add_library(minhook STATIC
-    External/MinHook/src/buffer.c
-    External/MinHook/src/hook.c
-    External/MinHook/src/trampoline.c
-    External/MinHook/src/hde/hde64.c
-)
-target_include_directories(minhook PUBLIC External/MinHook/include External/MinHook/src)
-
-set_property(TARGET minhook PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
 add_library(MELEDiscordRPC SHARED
     src/Main.cpp
     src/Common.cpp
     src/Log.cpp
-    src/Patterns.cpp
-    src/GameContext.cpp
     src/DiscordIpc.cpp
-    src/Presence.cpp
-    src/MapNames.cpp
     src/Ini.cpp
-    src/AreasRuntime.cpp
 )
-target_include_directories(MELEDiscordRPC PRIVATE src External/MinHook/include)
-target_link_libraries(MELEDiscordRPC PRIVATE minhook shlwapi)
-target_link_options(MELEDiscordRPC PRIVATE "/DEBUG")
+target_include_directories(MELEDiscordRPC PRIVATE src)
+target_link_libraries(MELEDiscordRPC PRIVATE shlwapi)
 set_property(TARGET MELEDiscordRPC PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set_property(TARGET MELEDiscordRPC PROPERTY SUFFIX ".asi")
 set_property(TARGET MELEDiscordRPC PROPERTY RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/out")
@@ -54,7 +38,7 @@ add_executable(rpc_test
     src/DiscordIpc.cpp
 )
 target_include_directories(rpc_test PRIVATE src)
-target_link_libraries(rpc_test PRIVATE shlwapi user32)
+target_link_libraries(rpc_test PRIVATE shlwapi)
 set_property(TARGET rpc_test PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set_property(TARGET rpc_test PROPERTY RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/out")
 set_property(TARGET rpc_test PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/out")
@@ -68,7 +52,7 @@ add_executable(rpc_probe
     src/DiscordIpc.cpp
 )
 target_include_directories(rpc_probe PRIVATE src)
-target_link_libraries(rpc_probe PRIVATE shlwapi user32)
+target_link_libraries(rpc_probe PRIVATE shlwapi)
 set_property(TARGET rpc_probe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set_property(TARGET rpc_probe PROPERTY RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/out")
 set_property(TARGET rpc_probe PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/out")

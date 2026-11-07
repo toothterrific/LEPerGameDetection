@@ -15,6 +15,9 @@ namespace mele {
     std::string WideToUtf8(const wchar_t* In, size_t InCharCount);
     std::string WideToUtf8(const std::wstring& In);
 
+    long long NowEpochMs();
+    long long NowTickMs();
+
     constexpr const char* k_IpcPipePrefix = "\\\\?\\pipe\\discord-ipc-";
 
 }
