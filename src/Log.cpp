@@ -80,10 +80,6 @@ namespace mele {
 
     void LogWrite(LogLevel Level, const char* Format, ...)
     {
-        if (Level == LogLevel::Debug && !g_DebugConsole) {
-            return;
-        }
-
         char prefix[48];
         WriteLevelPrefix(Level, prefix, sizeof(prefix));
 
@@ -96,7 +92,7 @@ namespace mele {
         char line[1120];
         snprintf(line, sizeof(line), "%s%s\r\n", prefix, body);
 
-        if (g_DebugConsole) {
+        if (g_DebugConsole || Level != LogLevel::Debug) {
             printf("%s", line);
             fflush(stdout);
         }
