@@ -2,7 +2,7 @@
 
 Native (ASI) mod that gives **Mass Effect: Legendary Edition** a clean per-game Discord presence: while you play, your Discord status shows **"Mass Effect"**, **"Mass Effect 2"** or **"Mass Effect 3"** â€” using that game's **official exe icon** â€” plus a session playtime timer. Nothing else is mined from the game.
 
-- **Single file**: one `MELEPerGamePresence.asi` works in all three games (process-name detection at load).
+- **Single file**: one `LEPerGameDetection.asi` works in all three games (process-name detection at load).
 - **Minimal risk**: no memory pattern scanning, no engine hooks, no game data reads. It only talks to the Discord desktop app over its local IPC pipe (`\\?\pipe\discord-ipc-*`). No OAuth, no background services.
 - **Requires**: the MELE ASI loader (bink2w64 proxy, standard for MELE mods) and Discord desktop running.
 
@@ -45,11 +45,11 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 cmake --build build --config Release
 ```
 
-Outputs: `build\out\MELEPerGamePresence.asi` (+ dev tools).
+Outputs: `build\out\LEPerGameDetection.asi` (+ dev tools).
 
 ## Configuration (optional)
 
-Copy `MELEPerGamePresence.ini.example` to `MELEPerGamePresence.ini`, next to the `.asi`:
+Copy `LEPerGameDetection.ini.example` to `LEPerGameDetection.ini`, next to the `.asi`:
 
 | Key | Meaning | Default |
 |---|---|---|
@@ -61,7 +61,7 @@ Copy `MELEPerGamePresence.ini.example` to `MELEPerGamePresence.ini`, next to the
 ## Installation
 
 1. Have the ASI loader installed (ME3Tweaks Mod Manager installs it for you: **Mod Management â†’ ASI Mod Manager**; ALOT users already have it).
-2. Copy `MELEPerGamePresence.asi` into `Game\ME1\Binaries\Win64\` (repeat for ME2/ME3 as desired).
+2. Copy `LEPerGameDetection.asi` into `Game\ME1\Binaries\Win64\` (repeat for ME2/ME3 as desired).
 3. Launch the game with Discord running â€” done.
 
 ## Diagnosing

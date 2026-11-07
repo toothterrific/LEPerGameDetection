@@ -338,17 +338,19 @@ namespace mele {
     {
         std::string json = "{\"type\":0";
 
-        json += ",\"details\":\"";
-        for (char c : Details) {
-            if (c == '"' || c == '\\') {
-                json.push_back('\\');
+        if (!Details.empty()) {
+            json += ",\"details\":\"";
+            for (char c : Details) {
+                if (c == '"' || c == '\\') {
+                    json.push_back('\\');
+                }
+                if (static_cast<unsigned char>(c) < 32) {
+                    c = ' ';
+                }
+                json.push_back(c);
             }
-            if (static_cast<unsigned char>(c) < 32) {
-                c = ' ';
-            }
-            json.push_back(c);
+            json += "\"";
         }
-        json += "\"";
 
         if (!State.empty()) {
             json += ",\"state\":\"";

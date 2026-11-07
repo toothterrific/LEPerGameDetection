@@ -60,7 +60,7 @@ namespace mele {
             return cfg;
         }
         ::PathRemoveFileSpecW(modulePath);
-        std::wstring iniPath = std::wstring(modulePath) + L"\\MELEPerGamePresence.ini";
+        std::wstring iniPath = std::wstring(modulePath) + L"\\LEPerGameDetection.ini";
 
         wchar_t buffer[256];
         const wchar_t* file = iniPath.c_str();

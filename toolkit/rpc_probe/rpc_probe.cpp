@@ -42,6 +42,9 @@ int main(int argc, char** argv)
     candidates.push_back({ "F: type 2 listening musiclike",
         "{\"type\":2,\"state\":\"State F\",\"details\":\"Details F\",\"instance\":true,\"timestamps\":{\"start\":" + std::to_string(nowSec) + "}}" });
 
+    candidates.push_back({ "G: EXACT v2 shape (no details/state, assets+timestamp only)",
+        "{\"type\":0,\"timestamps\":{\"start\":" + std::to_string(nowSec) + "},\"assets\":{\"large_image\":\"le1\"}}" });
+
     int sentAnySuccess = -1;
     for (size_t i = 0; i < candidates.size(); ++i) {
         ipc->DrainIncoming();
