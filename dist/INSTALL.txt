@@ -17,11 +17,11 @@ If you have ALOT or other native mods installed, the loader is already there.
 
 Manual install
 --------------
-1. Copy LEPerGameDetection.asi into each game's Binaries\Win64 folder you
-   want presence for:
-     Mass Effect Legendary Edition\Game\ME1\Binaries\Win64\
-     Mass Effect Legendary Edition\Game\ME2\Binaries\Win64\
-     Mass Effect Legendary Edition\Game\ME3\Binaries\Win64\
+1. Copy LEPerGameDetection.asi into the ASI folder inside each game's Win64
+   binary directory you want presence for:
+     Mass Effect Legendary Edition\Game\ME1\Binaries\Win64\ASI\
+     Mass Effect Legendary Edition\Game\ME2\Binaries\Win64\ASI\
+     Mass Effect Legendary Edition\Game\ME3\Binaries\Win64\ASI\
 2. (Optional) Copy LEPerGameDetection.ini next to the .asi file to override
    application IDs or the timer. Without an ini, compiled defaults apply.
 3. Launch the game with Discord running. The per-game status appears under
@@ -29,7 +29,7 @@ Manual install
 
 Uninstall
 ---------
-Delete LEPerGameDetection.asi (and the .ini) from the game folder(s).
+Delete LEPerGameDetection.asi (and the .ini) from the ASI folder(s).
 
 Troubleshooting
 ---------------

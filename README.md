@@ -61,7 +61,7 @@ Copy `LEPerGameDetection.ini.example` to `LEPerGameDetection.ini`, next to the `
 ## Installation
 
 1. Have the ASI loader installed (ME3Tweaks Mod Manager installs it for you: **Mod Management â†’ ASI Mod Manager**; ALOT users already have it).
-2. Copy `LEPerGameDetection.asi` into `Game\ME1\Binaries\Win64\` (repeat for ME2/ME3 as desired).
+2. Copy `LEPerGameDetection.asi` into `Game\ME1\Binaries\Win64\ASI\` (the ASI subfolder where the loader picks plugins up — repeat for ME2/ME3 as desired).
 3. Launch the game with Discord running â€” done.
 
 ## Diagnosing
