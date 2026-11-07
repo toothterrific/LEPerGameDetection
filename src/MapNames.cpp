@@ -27,8 +27,6 @@ namespace mele {
     {
         return BuildDict({
             { "entrymenu", "In main menu" },
-            { "BIOA_CRD00", "Citadel" },
-            { "BIOA_END00", "Normandy — Intro" },
         });
     }
 

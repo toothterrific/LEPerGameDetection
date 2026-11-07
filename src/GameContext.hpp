@@ -28,7 +28,11 @@ namespace mele {
         bool IsExitRequested() const;
         void* ProcessEventAddress() const { return m_ProcessEvent; }
 
+        void** WorldSlot() const { return m_GWorld; }
+        unsigned char** NamePoolsRaw() const { return m_NamePools; }
+
         std::string GetWorldPackageName();
+        std::string ResolveNameByValue(unsigned long long NameValue60);
 
     private:
         GameContext() = default;

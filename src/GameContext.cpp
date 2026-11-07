@@ -299,7 +299,12 @@ namespace mele {
         if (!TryGetCurrentWorldPackage(m_GWorld, &name60)) {
             return {};
         }
-        return ResolveNameString(name60);
+        return ResolveNameByValue(name60);
+    }
+
+    std::string GameContext::ResolveNameByValue(unsigned long long NameValue60)
+    {
+        return ResolveNameString(NameValue60);
     }
 
 }

@@ -34,6 +34,7 @@ add_library(MELEDiscordRPC SHARED
     src/Presence.cpp
     src/MapNames.cpp
     src/Ini.cpp
+    src/AreasRuntime.cpp
 )
 target_include_directories(MELEDiscordRPC PRIVATE src External/MinHook/include)
 target_link_libraries(MELEDiscordRPC PRIVATE minhook shlwapi)

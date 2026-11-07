@@ -5,6 +5,7 @@
 #include "DiscordIpc.hpp"
 #include "Presence.hpp"
 #include "MapNames.hpp"
+#include "AreasRuntime.hpp"
 #include "Ini.hpp"
 
 #include <MinHook.h>
@@ -24,11 +25,22 @@ namespace mele {
     static Config g_Config;
     static const char* k_DefaultClientId = "1568689342417739806";
 
+    static std::string g_LastPackageName;
+    static bool g_HaveLastPackage = false;
+
     static void OnGameTick()
     {
         auto* ctx = &GameContext::Instance();
 
         std::string packageName = ctx->GetWorldPackageName();
+
+        if (packageName.empty()) {
+            LOG_DEBUG("World package empty (loading stream); holding last presence state");
+            return;
+        }
+
+        const bool bPkgChanged = !g_HaveLastPackage || packageName != g_LastPackageName;
+
         PresenceField field;
         field.LargeKey = ctx->LargeImageKey();
         switch (ctx->GetGame()) {
@@ -38,13 +50,15 @@ namespace mele {
         default: field.State = "Mass Effect"; break;
         }
 
-        if (packageName.empty()) {
-            LOG_DEBUG("World package empty (loading stream); holding last presence state");
-            return;
-        } else if (packageName == "entrymenu") {
+        std::string dynamicName = AreasRuntime::Instance().ResolveArea(
+            ctx->GetGame(), packageName, bPkgChanged);
+
+        if (packageName == "entrymenu") {
             field.Details = "In main menu";
             field.bSmallKey = true;
             strcpy_s(field.SmallKey, sizeof(field.SmallKey), "menu");
+        } else if (!dynamicName.empty()) {
+            field.Details = dynamicName;
         } else {
             const char* mapped = LookupMapName(static_cast<int>(ctx->GetGame()), packageName);
             if (mapped) {
@@ -53,6 +67,11 @@ namespace mele {
                 field.Details = g_Config.bShowRawPackages ? ("Exploring " + packageName) : "Exploring";
                 LOG_DEBUG("Unmapped package '%s' (game %s)", packageName.c_str(), ctx->GameTag());
             }
+        }
+
+        if (bPkgChanged) {
+            g_LastPackageName = packageName;
+            g_HaveLastPackage = true;
         }
 
         PresenceState::Instance().StartSessionOnce();
@@ -221,6 +240,8 @@ namespace mele {
             LOG_ERROR("Initialization failed; mod stays idle");
             return 0;
         }
+
+        AreasRuntime::Instance().Initialize(GameContext::Instance().GetGame());
 
         DiscordIpc::Instance().Configure(cfg.ClientId);
 
