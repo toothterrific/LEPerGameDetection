@@ -23,3 +23,5 @@ Thumbs.db
 desktop.ini
 dist/v*.zip
 build/out/rpc_test*
+dist/*.zip
+dist/LEPerGameDetection_v*/
